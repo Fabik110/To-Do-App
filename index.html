@@ -3,37 +3,62 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Mini To-Do App</title>
+  <title>Enhanced Mini To-Do App</title>
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg,#e0f7fa,#e1f5fe);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
       margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
     }
+
+    body.light {
+      background: linear-gradient(135deg,#e0f7fa,#e1f5fe);
+      color: #000;
+    }
+
+    body.dark {
+      background: linear-gradient(135deg,#121212,#1e1e1e);
+      color: #eee;
+    }
+
     .container {
-      background: rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.85);
       backdrop-filter: blur(10px);
       padding: 32px;
       border-radius: 16px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-      width: 400px;
+      width: 100%;
+      max-width: 500px;
+      margin: auto;
+      transition: background 0.3s, color 0.3s;
     }
+
+    body.dark .container {
+      background: rgba(50,50,50,0.85);
+    }
+
     h1 {
-      font-size: 22px;
-      color: #0d47a1;
+      font-size: 24px;
       text-align: center;
       margin-bottom: 16px;
     }
-    input[type="text"] {
-      width: 70%;
+
+    .input-group {
+      display: flex;
+      margin-bottom: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"], select {
+      flex: 1;
       padding: 8px;
       border-radius: 8px;
       border: 1px solid #90caf9;
     }
+
     button {
       padding: 8px 16px;
       border-radius: 8px;
@@ -42,27 +67,63 @@
       color: white;
       font-weight: 600;
       cursor: pointer;
-      margin-left: 8px;
+      transition: background 0.3s;
     }
+
     button:hover {
       background: #1565c0;
     }
+
+    .filters {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filters button {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+
     ul {
       list-style: none;
       padding: 0;
-      margin-top: 20px;
+      margin-top: 0;
     }
+
     li {
-      background: rgba(255,255,255,0.6);
       margin-bottom: 8px;
       padding: 12px;
       border-radius: 8px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
       font-size: 16px;
       word-break: break-word;
+      transition: background 0.3s, color 0.3s;
     }
+
+    body.light li {
+      background: rgba(255,255,255,0.6);
+      color: #000;
+    }
+
+    body.dark li {
+      background: rgba(70,70,70,0.6);
+      color: #eee;
+    }
+
+    li.completed span.task-title {
+      text-decoration: line-through;
+      color: #888;
+    }
+
+    span.task-title {
+      flex: 1;
+      margin-left: 8px;
+    }
+
     .delete {
       background: #e53935;
       border: none;
@@ -70,19 +131,73 @@
       padding: 4px 8px;
       border-radius: 6px;
       cursor: pointer;
+      margin-left: 4px;
     }
+
     .delete:hover {
       background: #b71c1c;
     }
+
+    .priority {
+      margin-left: 8px;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .high { background: #d32f2f; }
+    .normal { background: #388e3c; }
+
+    p.instruction {
+      text-align: center;
+      font-size: 14px;
+      margin: 8px 0;
+      color: #333;
+    }
+
+    body.dark p.instruction {
+      color: #fff;
+    }
+
+    #darkModeToggle {
+      margin-bottom: 12px;
+      background: #555;
+      color: white;
+    }
+
+    body.dark #darkModeToggle {
+      background: #999;
+      color: black;
+    }
   </style>
 </head>
-<body>
+<body class="light">
   <div class="container">
-    <h1>Mini To-Do App</h1>
-    <div>
+    <h1>Enhanced Mini To-Do App</h1>
+
+    <button id="darkModeToggle">Toggle Dark Mode</button>
+
+    <div class="input-group">
       <input type="text" id="taskInput" placeholder="Enter a task">
+      <select id="priority">
+        <option value="normal">Normal</option>
+        <option value="high">High</option>
+      </select>
       <button id="addTask">Add</button>
     </div>
+
+    <p class="instruction">
+      Mark tasks completed using the checkbox. Click title to edit.
+    </p>
+
+    <div class="filters">
+      <button data-filter="all">All</button>
+      <button data-filter="pending">Pending</button>
+      <button data-filter="completed">Completed</button>
+    </div>
+
     <ul id="taskList"></ul>
   </div>
 
@@ -90,45 +205,96 @@
     const taskInput = document.getElementById('taskInput');
     const addTaskBtn = document.getElementById('addTask');
     const taskList = document.getElementById('taskList');
+    const prioritySelect = document.getElementById('priority');
+    const filterButtons = document.querySelectorAll('.filters button');
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const body = document.body;
 
-    // Load tasks from localStorage
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    let currentFilter = 'all';
+    let darkMode = localStorage.getItem('darkMode') === 'true';
+
+    if(darkMode) body.classList.replace('light','dark');
+
     function saveTasks() {
       localStorage.setItem('tasks', JSON.stringify(tasks));
     }
 
     function renderTasks() {
       taskList.innerHTML = '';
-      tasks.forEach((task, index) => {
+      let filteredTasks = tasks;
+      if(currentFilter === 'completed') filteredTasks = tasks.filter(t => t.completed);
+      if(currentFilter === 'pending') filteredTasks = tasks.filter(t => !t.completed);
+
+      filteredTasks.forEach((task, index) => {
         const li = document.createElement('li');
-        li.textContent = task;
+        li.className = task.completed ? 'completed' : '';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = task.completed;
+        checkbox.addEventListener('change', () => {
+          task.completed = checkbox.checked;
+          saveTasks();
+          renderTasks();
+        });
+
+        const span = document.createElement('span');
+        span.textContent = task.text;
+        span.className = 'task-title';
+        span.contentEditable = true;
+        span.addEventListener('blur', () => {
+          task.text = span.textContent.trim();
+          saveTasks();
+        });
+
+        const prio = document.createElement('span');
+        prio.className = `priority ${task.priority}`;
+        prio.textContent = task.priority;
+
         const delBtn = document.createElement('button');
         delBtn.textContent = 'Delete';
         delBtn.className = 'delete';
         delBtn.addEventListener('click', () => {
-          tasks.splice(index, 1);
+          tasks.splice(index,1);
           saveTasks();
           renderTasks();
         });
+
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        li.appendChild(prio);
         li.appendChild(delBtn);
         taskList.appendChild(li);
       });
     }
 
     addTaskBtn.addEventListener('click', () => {
-      const task = taskInput.value.trim();
-      if(task) {
-        tasks.push(task);
-        saveTasks();
-        renderTasks();
-        taskInput.value = '';
-      } else {
-        alert('Please enter a task.');
-      }
+      const text = taskInput.value.trim();
+      const priority = prioritySelect.value;
+      if(!text) { alert('Please enter a task'); return; }
+      tasks.push({ text, completed:false, priority });
+      taskInput.value = '';
+      saveTasks();
+      renderTasks();
     });
 
-    taskInput.addEventListener('keypress', (e) => {
+    taskInput.addEventListener('keypress', e => {
       if(e.key === 'Enter') addTaskBtn.click();
+    });
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentFilter = btn.dataset.filter;
+        renderTasks();
+      });
+    });
+
+    darkModeToggle.addEventListener('click', () => {
+      darkMode = !darkMode;
+      body.classList.toggle('dark', darkMode);
+      body.classList.toggle('light', !darkMode);
+      localStorage.setItem('darkMode', darkMode);
     });
 
     renderTasks();
